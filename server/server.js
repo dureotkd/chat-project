@@ -11,9 +11,10 @@ const server = http.createServer(app);
 app.use(
   session({
     secret: "thisissessionSecret",
-    resave: false,
     saveUninitialize: true,
     store: new fileStore(), // 세션 객체에 세션스토어를 적용
+    resave: true,
+    saveUninitialized: true,
   })
 );
 app.use(
@@ -29,6 +30,7 @@ const DB = {
   user: [
     {
       id: 1,
+      profile: "https://cacaodada.com/common/img/default_profile.png",
       email: "asd123@naver.com",
       pw: "asd123",
     },
@@ -38,7 +40,7 @@ const DB = {
       id: 1,
       name: "[대전] 게임 동아리",
       userIds: [1],
-      chat: [{}],
+      chat: [],
     },
   ],
 };
@@ -116,12 +118,71 @@ app.get("/login", (req, res) => {
   res.send(result);
 });
 
+app.post("/room", (req, res) => {
+  const { title } = req.query;
+  const { loginUser } = req.session;
+  const valid = [1];
+
+  const result = {
+    code: "success",
+    msg: "방 만들기 성공",
+  };
+
+  if (!title) {
+    result.code = "fail";
+    result.msg = "방 제목을 입력해주세요";
+  }
+
+  if (!loginUser.id) {
+    result.code = "fail";
+    result.msg = "로그인 후 이용해주세요";
+  }
+
+  if (result.code === "fail") {
+    res.send(result);
+    return;
+  }
+
+  /**
+   * 
+   *   room: [
+    {
+      id: 1,
+      name: "[대전] 게임 동아리",
+      userIds: [1],
+      chat: [{}],
+    },
+  ],
+   */
+
+  const newRoom = {
+    id: DB.room.length + 1,
+    name: title,
+    userIds: [loginUser.id],
+    chat: [],
+  };
+
+  DB.room.unshift(newRoom);
+  result.newRoom = newRoom;
+
+  res.send(result);
+  return;
+});
+
+app.get("/user/me", (req, res) => {
+  const { loginUser } = req.session;
+
+  res.send(loginUser);
+});
+
 app.get("/myJoinRoom", (req, res) => {
-  const { id, email } = req.session.loginUser;
+  const { id, email } = req.session?.loginUser || {};
 
   const 내가참여한방 = DB.room.filter((item) => {
     return item.userIds.includes(id);
   });
+
+  console.log(내가참여한방);
 
   res.send(내가참여한방);
 });
